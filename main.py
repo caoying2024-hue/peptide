@@ -35,12 +35,10 @@ def calculate_coupling(freq_position_aa, freq_pair_aa, o=9, NA=20):
 
     sum_freq_coupling = torch.zeros((o, o), device=device)
 
-    # 计算phi值
     phi = torch.where((freq_position_aa == 0) | (freq_position_aa == 1),
                       torch.tensor(0.0, device=device),
                       torch.log((freq_position_aa * (1 - mean_freq)) / ((1 - freq_position_aa) * mean_freq)))
 
-    # 计算保守性耦合分数
     for m in range(o):
         for r in range(o):
             freq_coupling = freq_pair_aa[m, r] - freq_position_aa[m].unsqueeze(1) * freq_position_aa[r].unsqueeze(0)
@@ -106,12 +104,6 @@ class Loss(nn.Module):
         input_coupling = get_coupling(freq_position_aa, freq_pair_aa)
         output_coupling = get_coupling(pos, pair)
         loss3 = self.mse3(input_coupling, output_coupling)
-        # print(loss1)
-        # print(loss3)
-    
-
-        # print(f"loss1: {loss1.item()} , loss 2: {loss2.item()}")
-        # return loss2
         return loss2
 
 
@@ -220,3 +212,4 @@ if __name__ == '__main__':
                         os.makedirs(folder)
                     save_frequency(frequency, folder)
                     save_seqence(frequency, folder)
+
