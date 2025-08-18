@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader, dataset
 from torch.nn import functional as F
 from tqdm import tqdm
-from vit_model import VisionTransformer
+from vit_model import Transformer
 
 
 def read_file(filename):
@@ -50,19 +50,6 @@ def calculate_coupling(freq_position_aa, freq_pair_aa, o=9, NA=20):
     sum_freq_coupling=torch.sqrt(sum_freq_coupling)
     return sum_freq_coupling
 
-
-def get_coupling(freq_position_aa, freq_pair_aa):
-    all_coupling = []
-    b = freq_position_aa.shape[0]
-    for i in range(b):
-        pos = freq_position_aa[i]
-        pair = freq_pair_aa[i]
-        coupling = calculate_coupling(pos, pair)
-        all_coupling.append(coupling)
-    all_coupling = torch.concat(all_coupling, dim=0)
-    return all_coupling
-
-
 class SeqDataset(dataset.Dataset):
     def __init__(self, file_paths, mode):
         super(SeqDataset, self).__init__()
@@ -94,17 +81,14 @@ class Loss(nn.Module):
         super(Loss, self).__init__()
         self.mse1 = nn.MSELoss()
         self.mse2 = nn.MSELoss()
-        self.mse3 = nn.MSELoss()
 
     def forward(self, output, freq_position_aa, freq_pair_aa):
         pos = get_position(output)
         pair = get_pair(output)
         loss1 = self.mse1(pos, freq_position_aa)
         loss2 = self.mse2(pair, freq_pair_aa)
-        input_coupling = get_coupling(freq_position_aa, freq_pair_aa)
-        output_coupling = get_coupling(pos, pair)
-        loss3 = self.mse3(input_coupling, output_coupling)
-        return loss2
+        return loss1 + 65*loss2
+        # return loss2
 
 
 def save_frequency(frequency, folder):
@@ -127,8 +111,6 @@ def save_seqence(frequency, folder):
         while j < frequency.shape[1]:
             sam = torch.multinomial(frequency[i, j, :], num_samples=1, replacement=True)
             res[i, j, :] = sam
-            # if res[i].squeeze(-1).tolist() in input_true:
-            #     j = j - 1
             j = j + 1
 
     res = res.squeeze(dim=-1).numpy().tolist()
@@ -147,17 +129,17 @@ def save_seqence(frequency, folder):
 
 
 if __name__ == '__main__':
-    # mode = "train"
-    mode = "test"
+    mode = "train"   #训练模块
+    # mode = "test"  #测试模块
     train_folder = "./train_data"
     train_path = [os.path.join(train_folder, i) for i in os.listdir(train_folder)]
     test_folder = "./test_data"
     test_path = [os.path.join(test_folder, i) for i in os.listdir(test_folder)]
-    model_path = "model.pth7.2"
-    output_folder = "output7.2"
+    model_path = "model.pth17.2"
+    output_folder = "output17.2"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    model = VisionTransformer(
+    model = Transformer(
         img_size=[90, 180],
         in_c=1,
         patch_size=[10, 10],
@@ -212,4 +194,3 @@ if __name__ == '__main__':
                         os.makedirs(folder)
                     save_frequency(frequency, folder)
                     save_seqence(frequency, folder)
-
