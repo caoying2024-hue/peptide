@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader, dataset
 from torch.nn import functional as F
 from tqdm import tqdm
-from vit_model import Transformer
+from model import Transformer
 
 
 def read_file(filename):
@@ -194,3 +194,4 @@ if __name__ == '__main__':
                         os.makedirs(folder)
                     save_frequency(frequency, folder)
                     save_seqence(frequency, folder)
+
