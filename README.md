@@ -1,4 +1,4 @@
-# MHCII-peptide :Evolutionary Information-Guided Deep Learning and Monte Carlo Simulation Annealing for MHCII Peptide Design
+# Evolutionary Information-Guided Deep Learning and Monte Carlo Simulation Annealing for MHCII Binding Peptide Design
 
 ## Introduction
 It is a computational framework for short peptide design targeting MHCII molecules.  
