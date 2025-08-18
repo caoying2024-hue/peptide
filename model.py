@@ -1,4 +1,3 @@
-
 from functools import partial
 from collections import OrderedDict
 
@@ -54,7 +53,7 @@ class PatchEmbed(nn.Module):
 
 class Attention(nn.Module):
     def __init__(self,
-                 dim,   # 输入token的dim
+                 dim,   
                  num_heads=8,
                  qkv_bias=False,
                  qk_scale=None,
@@ -150,7 +149,6 @@ class Transformer(nn.Module):
             for i in range(depth)
         ])
         self.softplus = nn.Softmax(dim=-1)
-        self.apply(_init_vit_weights)
 
     def forward_features(self, x):
         x = self.blocks(x)
@@ -164,7 +162,7 @@ class Transformer(nn.Module):
         x2 = x2.reshape(b, 180, 180).unsqueeze(1)
         x2 = self.conv1(x2)
         x2 = x2.flatten(2)
-        x = torch.cat((x1, x2), dim=2)#特征融合
+        x = torch.cat((x1, x2), dim=2)
         x = x.transpose(1, 2)
         x = self.forward_features(x)
 
@@ -172,105 +170,3 @@ class Transformer(nn.Module):
         x = x.reshape(b, 5000, 9, 20)
         x = F.softmax(x, dim=-1)
         return x
-
-
-def _init_vit_weights(m):
-    if isinstance(m, nn.Linear):
-        nn.init.trunc_normal_(m.weight, std=.01)
-        if m.bias is not None:
-            nn.init.zeros_(m.bias)
-    elif isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, mode="fan_out")
-        if m.bias is not None:
-            nn.init.zeros_(m.bias)
-    elif isinstance(m, nn.LayerNorm):
-        nn.init.zeros_(m.bias)
-        nn.init.ones_(m.weight)
-
-
-def vit_base_patch16_224(num_classes: int = 1000):
-    model = Transformer(img_size=224,
-                              patch_size=16,
-                              embed_dim=768,
-                              depth=12,
-                              num_heads=12,
-                              representation_size=None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_base_patch16_224_in21k(num_classes: int = 21843, has_logits: bool = True):
-    model = Transformer(img_size=224,
-                              patch_size=16,
-                              embed_dim=768,
-                              depth=12,
-                              num_heads=12,
-                              representation_size=768 if has_logits else None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_base_patch32_224(num_classes: int = 1000):
-    model = Transformer(img_size=224,
-                              patch_size=32,
-                              embed_dim=768,
-                              depth=12,
-                              num_heads=12,
-                              representation_size=None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_base_patch32_224_in21k(num_classes: int = 21843, has_logits: bool = True):
-    model = Transformer(img_size=224,
-                              patch_size=32,
-                              embed_dim=768,
-                              depth=12,
-                              num_heads=12,
-                              representation_size=768 if has_logits else None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_large_patch16_224(num_classes: int = 1000):
-    model = Transformer(img_size=224,
-                              patch_size=16,
-                              embed_dim=1024,
-                              depth=24,
-                              num_heads=16,
-                              representation_size=None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_large_patch16_224_in21k(num_classes: int = 21843, has_logits: bool = True):
-    model = Transformer(img_size=224,
-                              patch_size=16,
-                              embed_dim=1024,
-                              depth=24,
-                              num_heads=16,
-                              representation_size=1024 if has_logits else None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_large_patch32_224_in21k(num_classes: int = 21843, has_logits: bool = True):
-    model = Transformer(img_size=224,
-                              patch_size=32,
-                              embed_dim=1024,
-                              depth=24,
-                              num_heads=16,
-                              representation_size=1024 if has_logits else None,
-                              num_classes=num_classes)
-    return model
-
-
-def vit_huge_patch14_224_in21k(num_classes: int = 21843, has_logits: bool = True):
-    model = Transformer(img_size=224,
-                              patch_size=14,
-                              embed_dim=1280,
-                              depth=32,
-                              num_heads=16,
-                              representation_size=1280 if has_logits else None,
-                              num_classes=num_classes)
-    return model
