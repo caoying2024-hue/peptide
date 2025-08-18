@@ -11,7 +11,7 @@ It addresses the limitations of structure-based approaches for peptides lacking 
   - Uses amino acid frequency and residue pair joint frequency as learning signals.
   - CNN–Transformer architecture for modeling both local features and long-range dependencies of amino acid frequencies.
   - Supports multiple loss configurations to generate peptide sequences with different evolutionary constraints.
-- **Monte Carlo Simulated Annealing (SA) Design**
+- **Monte Carlo Simulated Annealing (MCSA) Design**
   - Flexible initialization strategies (random or frequency-based).
   - Two types of mutation modes during annealing (random or probability-guided).
 - **Output**
