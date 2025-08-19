@@ -89,7 +89,6 @@ def shuffle_columns2(columns):
 
 
 def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
-    # sequence_id = torch.tensor(sequence_id)
     sequence_id = get_input1(sequence_id)
     device = sequence_id.device
     residue_simple = torch.arange(NA, device=device)
@@ -97,7 +96,6 @@ def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
         [0.025, 0.023, 0.042, 0.053, 0.089, 0.063, 0.013, 0.033, 0.073, 0.072, 0.056, 0.073, 0.043, 0.04, 0.05, 0.061,
          0.023, 0.052, 0.064, 0.052], device=device)
 
-    # Initialize tensors
     hist_position_aa = torch.zeros((o, NA), device=device)
     freq_position_aa = torch.zeros((o, NA), device=device)
     freq_pair_aa = torch.zeros((o, o, NA, NA), device=device)
@@ -105,27 +103,19 @@ def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
     phi = torch.zeros((o, NA), device=device)
     sum_freq_coupling = torch.zeros((o, o), device=device)
     if flag == True:
-        # 统计每个位置上氨基酸的出现次数
         for m in range(o):
             hist_position_aa[m] = torch.bincount(sequence_id[:, m], minlength=NA)
-
-        # 计算每个位置上氨基酸的频率
         freq_position_aa = hist_position_aa / len(sequence_id)
 
-        # 统计每个位置两两氨基酸对的出现次数
         for m in range(o):
             for r in range(o):
                 for p in range(NA):
                     for q in range(NA):
                         hist_pair_aa[m, r, p, q] = torch.sum((sequence_id[:, m] == p) & (sequence_id[:, r] == q))
-
-        # 计算氨基酸对的频率
         freq_pair_aa = hist_pair_aa / len(sequence_id)
     else:
-        # print(sequence_id)
         freq_position_aa = torch.sum(sequence_id, dim=0) / len(sequence_id)
         freq_pair_aa = torch.einsum('bik,bjl->ijkl', sequence_id, sequence_id) / len(sequence_id)
-    # 计算phi值
     phi = torch.where((freq_position_aa == 0) | (freq_position_aa == 1),
                       torch.tensor(0.0, device=device),
                       torch.log((freq_position_aa * (1 - mean_freq)) / ((1 - freq_position_aa) * mean_freq)))
@@ -136,11 +126,9 @@ def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
             freq_coupling = freq_pair_aa[m, r] - freq_position_aa[m].unsqueeze(1) * freq_position_aa[r].unsqueeze(0)
             weight_freq_coupling = phi[m].unsqueeze(1) * phi[r].unsqueeze(0) * freq_coupling
             sum_freq_coupling[m, r] = torch.sum(weight_freq_coupling * weight_freq_coupling)
-    # print(sum_freq_coupling)
     scale = torch.ones(9, 9, device=device)
     scale[range(9), range(9)] = 1
     sum_freq_coupling = sum_freq_coupling * scale
-    # print(sum_freq_coupling)
     sum_freq_coupling = torch.sqrt(sum_freq_coupling)
     return sum_freq_coupling
 
@@ -305,7 +293,7 @@ import os
 
 if __name__ == "__main__":
 
-    folder_name = "HLA-DRB5_01_01/output_files(cc)"
+    folder_name = "HLA-DRB5_01_01/output_files(L2)"
     max_iterations =2000
     initial_temp =15
     cooling_rate= 0.99
@@ -316,7 +304,7 @@ if __name__ == "__main__":
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    msa_file = "HLA-DRB5_01_01/bind.txt"
+    msa_file = "HLA-DRB5_01_01"
     freq_file = "AAMeanFrequency.dat"
     parameters_file = os.path.join(folder_name, "parameters.txt")
     output_file = os.path.join(folder_name, "optimized_family.txt")
