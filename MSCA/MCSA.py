@@ -47,11 +47,6 @@ def read_aa_mean_frequency(filename):
 
 # 读取MSA列数据
 def read_msa_columns(msa_file):
-    """
-    从 MSA 文件中提取每列氨基酸数据。  
-    :param msa_file: MSA 文件路径
-    :return: 列列表，每列是一个包含氨基酸的列表
-    """
     columns = []
     with open(msa_file, 'r') as file:
         msa = [line.strip() for line in file.readlines() if line.strip()]  # 读取 MSA 并移除空行
@@ -63,13 +58,8 @@ def read_msa_columns(msa_file):
     return columns
 
 
-
+#计算每列中氨基酸的频率分布
 def calculate_column_frequencies(columns):
-    """
-    计算每列中氨基酸的频率分布。
-    :param columns: MSA 的列数据
-    :return: 每列的频率分布列表
-    """
     frequencies = []
     for column in columns:
         unique, counts = np.unique(column, return_counts=True)
@@ -78,33 +68,22 @@ def calculate_column_frequencies(columns):
         frequencies.append(freq_dict)
     return frequencies
 
-
+#从 MSA 列数据中生成随机序列（基于列内频率分布）
 def shuffle_columns(columns, column_frequencies):
-    """
-    从 MSA 列数据中生成随机序列（基于列内频率分布）。
-    :param columns: MSA 的列数据，每列是一个包含氨基酸的列表
-    :param column_frequencies: 每列的频率分布列表
-    :return: 随机生成的序列
-    """
     sequence = []
     for column, freq_dict in zip(columns, column_frequencies):
         amino_acids = list(freq_dict.keys())
         probabilities = list(freq_dict.values())
-        aa = np.random.choice(amino_acids, p=probabilities)  # 按概率抽样
+        aa = np.random.choice(amino_acids, p=probabilities)  
         sequence.append(aa)
     return sequence
 
-
+#从 MSA 列数据中生成随机序列（完全随机选择，不按频率分布）
 def shuffle_columns2(columns):
-    """
-    从 MSA 列数据中生成随机序列（完全随机选择，不按频率分布）。
-    :param columns: MSA 的列数据，每列是一个包含氨基酸的列表
-    :return: 随机生成的序列
-    """
     sequence = []
     for column in columns:
         column = list(set(column))
-        aa = np.random.choice(column)  # 完全随机选择一个氨基酸
+        aa = np.random.choice(column)  
         sequence.append(aa)
     return sequence
 
@@ -166,61 +145,38 @@ def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
     return sum_freq_coupling
 
 
-
+#对给定的序列进行局部微调，基于每列的氨基酸频率分布。
 def   perturb_sequence(sequence, columns, column_frequencies, perturbation_strength=0.08):
-    """
-    对给定的序列进行局部微调，基于每列的氨基酸频率分布。
-    :param sequence: 要微调的氨基酸序列
-    :param columns: MSA 的列数据，每列包含所有序列中相同位置的氨基酸
-    :param column_frequencies: 每列氨基酸频率字典的列表
-    :param perturbation_strength: 控制微调强度的参数，值越大，变动越大
-    :return: 微调后的序列
-    """
-    new_sequence = sequence[:]  # 创建序列的副本，以避免修改原始序列
-    num_positions = len(sequence)  # 序列的长度
+    new_sequence = sequence[:]  
+    num_positions = len(sequence) 
 
     for i in range(num_positions):
-        # 获取当前列的频率分布
         freq_dict = column_frequencies[i]
         possible_residues = list(freq_dict.keys())
         frequencies = [freq_dict[aa] for aa in possible_residues]
 
         if random.random() < perturbation_strength:
-            # 按照频率进行选择
             new_residue = random.choices(possible_residues, weights=frequencies)[0]
         else:
             new_residue = sequence[i]
-
+            
         new_sequence[i] = new_residue
 
     return new_sequence    
 
-
+# 对给定的序列进行局部微调，完全随机选择新的氨基酸（不按频率分布）。
 def perturb_sequence2(sequence, columns, perturbation_strength=0.08):
-    """
-    对给定的序列进行局部微调，完全随机选择新的氨基酸（不按频率分布）。
-    :param sequence: 要微调的氨基酸序列
-    :param columns: MSA 的列数据，每列包含所有序列中相同位置的氨基酸
-    :param perturbation_strength: 控制微调强度的参数，值越大，变动越大
-    :return: 微调后的序列
-    """
-    new_sequence = sequence[:]  # 创建序列的副本，以避免修改原始序列
-    num_positions = len(sequence)  # 序列的长度
+    new_sequence = sequence[:]  
+    num_positions = len(sequence)  
 
     for i in range(num_positions):
-        # 获取当前列的所有氨基酸
-        # possible_residues = columns[i]
         possible_residues = list(set(columns[i]))
-
-        # 选择一个新的氨基酸
-        if random.random() < perturbation_strength:  # 根据 perturbation_strength 决定是否进行变动
-            # 完全随机选择一个氨基酸
+        if random.random() < perturbation_strength: 
             new_residue = random.choice(possible_residues)
         else:
-            # 若不进行变动，保持原序列的氨基酸
             new_residue = sequence[i]
 
-        new_sequence[i] = new_residue  # 更新该位置的氨基酸
+        new_sequence[i] = new_residue 
 
     return new_sequence
 
@@ -255,7 +211,7 @@ def monte_carlo_family_optimization(target_coupling_matrix, residue_simple, colu
 
     target_coupling_matrix = target_coupling_matrix.to(device)
 
-    # # 提取对角线元素的差值的绝对值
+    # 提取对角线元素的差值的绝对值
     diagonal_diff = torch.sqrt(torch.pow(torch.diagonal(current_coupling - target_coupling_matrix), 2))
     # 计算对角线误差（绝对值）
     diagonal_error = torch.sum(diagonal_diff)
@@ -332,14 +288,13 @@ def monte_carlo_family_optimization(target_coupling_matrix, residue_simple, colu
             # 未接受新家族
                 rejected_count += 1
                 print(f"  Rejected new family (did not pass acceptance probability).")
-             # 更新步数和稳定性检测
+                
             steps_at_current_temp += 1
             print(f" Current Score: {current_score}, New Score: {new_score}, Acceptance Probability: {acceptance_probability:.4f},delta:{delta:.4f}")
         temp *= cooling_rate
         
         # 记录当前得分
         convergence_data.append(current_score)
-        # 打印迭代信息
         print(f"temp: {temp}")
         print(f"Iteration {iteration + 1}/{max_iterations}, Current Score: {current_score:.4f}, Best Score: {best_score:.4f},New Score: {new_score:.4f}, Delta: {delta:.4f}")
         print(f"Temperature {temp}: Delta < 0 count: {delta_neg_count}, Accepted count: {accepted_count}, Rejected count: {rejected_count}")
