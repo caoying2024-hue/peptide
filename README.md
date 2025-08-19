@@ -40,7 +40,7 @@ Two key settings are available:
   - `shuffle_columns2`: Peptides are initialized completely at random.
 
 - **Mutation mode**
-  - `perturb_sequence`: Mutations are performed according to predefined amino acid probability distributions.
+  - `perturb_sequence`: Mutations are performed according to predefined amino acid frequency distributions.
   - `perturb_sequence2`: Mutations are performed randomly during annealing.
 
 ---
