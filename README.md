@@ -28,7 +28,7 @@ Two modules are included:
 
 Loss function modes:
 - `loss2`: Uses **residue pair joint frequency** as the loss term → generates **L1 sequences**.
-- `loss + 65*loss2`: Combines **amino acid frequency** and **residue pair joint frequency** → generates **L2 sequences**.
+- `loss1 + 65*loss2`: Combines **amino acid frequency** and **residue pair joint frequency** → generates **L2 sequences**.
 
 ---
 
