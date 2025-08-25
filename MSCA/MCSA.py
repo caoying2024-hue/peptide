@@ -3,7 +3,7 @@ import math
 import numpy as np
 import random
 
-# 使用 GPU（如果可用）
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NA=20
 residue_sample = ['C', 'M', 'F', 'I', 'L', 'V', 'W', 'Y', 'A', 'G', 'T', 'S', 'N', 'Q', 'D', 'E', 'H', 'R', 'K', 'P']
@@ -23,7 +23,7 @@ def get_input2(data, residue_simple_num=residue_simple_num):
     return index_m
 
 
-# 从文件读取氨基酸平均频率
+# The amino acid average frequency from the file
 def read_aa_mean_frequency(filename):
     residue = []
     residue_simple = []
@@ -45,20 +45,20 @@ def read_aa_mean_frequency(filename):
     return residue, residue_simple, mean_freq
 
 
-# 读取MSA列数据
+# MSA data
 def read_msa_columns(msa_file):
     columns = []
     with open(msa_file, 'r') as file:
-        msa = [line.strip() for line in file.readlines() if line.strip()]  # 读取 MSA 并移除空行
+        msa = [line.strip() for line in file.readlines() if line.strip()]  
 
-    o = len(msa[0])  # 假设所有序列长度相同
+    o = len(msa[0])  
     for col_idx in range(o):
-        column = [seq[col_idx] for seq in msa]  # 提取每列的氨基酸
+        column = [seq[col_idx] for seq in msa] 
         columns.append(column)   
     return columns
 
 
-#计算每列中氨基酸的频率分布
+#Calculate the frequency distribution of amino acids in each column
 def calculate_column_frequencies(columns):
     frequencies = []
     for column in columns:
@@ -68,7 +68,7 @@ def calculate_column_frequencies(columns):
         frequencies.append(freq_dict)
     return frequencies
 
-#从 MSA 列数据中生成随机序列（基于列内频率分布）
+#Generate random sequences from MSA data (based on frequency distribution within columns)
 def shuffle_columns(columns, column_frequencies):
     sequence = []
     for column, freq_dict in zip(columns, column_frequencies):
@@ -78,7 +78,7 @@ def shuffle_columns(columns, column_frequencies):
         sequence.append(aa)
     return sequence
 
-#从 MSA 列数据中生成随机序列（完全随机选择，不按频率分布）
+#Generate random sequences from MSA data (completely randomly selected, not distributed by frequency)
 def shuffle_columns2(columns):
     sequence = []
     for column in columns:
@@ -120,7 +120,7 @@ def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
                       torch.tensor(0.0, device=device),
                       torch.log((freq_position_aa * (1 - mean_freq)) / ((1 - freq_position_aa) * mean_freq)))
 
-    # 计算保守性耦合分数
+
     for m in range(o):
         for r in range(o):
             freq_coupling = freq_pair_aa[m, r] - freq_position_aa[m].unsqueeze(1) * freq_position_aa[r].unsqueeze(0)
@@ -133,7 +133,7 @@ def calculate_coupling(sequence_id, flag=False, o=9, NA=20):
     return sum_freq_coupling
 
 
-#对给定的序列进行局部微调，基于每列的氨基酸频率分布。
+#Mutations are made to a given sequence, based on the amino acid frequency distribution of each column.
 def   perturb_sequence(sequence, columns, column_frequencies, perturbation_strength=0.08):
     new_sequence = sequence[:]  
     num_positions = len(sequence) 
@@ -152,7 +152,7 @@ def   perturb_sequence(sequence, columns, column_frequencies, perturbation_stren
 
     return new_sequence    
 
-# 对给定的序列进行局部微调，完全随机选择新的氨基酸（不按频率分布）。
+#Mutation of a given sequence to completely randomly select new amino acids (not distributed by frequency)
 def perturb_sequence2(sequence, columns, perturbation_strength=0.08):
     new_sequence = sequence[:]  
     num_positions = len(sequence)  
@@ -178,46 +178,36 @@ def read_IC(filename):
 
 
 
-# 模拟退火算法更新（使用 GPU 加速）
 def monte_carlo_family_optimization(target_coupling_matrix, residue_simple, columns, column_frequencies,
                                     mean_freq, o, NA, 
                                     max_iterations,initial_temp, cooling_rate,num_sequences=410, steps_per_temp=1000):
-    """
-    优化蛋白质序列家族，使其耦合矩阵与目标耦合矩阵的差值最小化。
-    每个温度下进行多次搜索，直到找到平衡状态才降温。
-    """
-    #按照频率初始化序列家族
+
+
     current_family = [ shuffle_columns(columns, column_frequencies) for _ in range(num_sequences)]
-    # 随机初始化序列家族
+
     # current_family = [shuffle_columns2(columns) for _ in range(num_sequences)]
-    # #按照FS序列初始化序列家族
+                                        
     # filename = "HLA-DRB5_01_01/ic.txt"
     # current_family = read_IC(filename)
 
-    # 计算初始家族的耦合矩阵和目标函数值
     current_coupling = calculate_coupling(current_family)
-
     target_coupling_matrix = target_coupling_matrix.to(device)
 
-    # 提取对角线元素的差值的绝对值
-    diagonal_diff = torch.sqrt(torch.pow(torch.diagonal(current_coupling - target_coupling_matrix), 2))
-    # 计算对角线误差（绝对值）
-    diagonal_error = torch.sum(diagonal_diff)
 
-    # 提取非对角线元素的差值的绝对值
+    diagonal_diff = torch.sqrt(torch.pow(torch.diagonal(current_coupling - target_coupling_matrix), 2))
+    diagonal_error = torch.sum(diagonal_diff)
     off_diagonal_diff = (current_coupling - target_coupling_matrix) ** 2
-    off_diagonal_diff = off_diagonal_diff.fill_diagonal_(0)  # 去掉对角线部分
-    # 计算非对角线误差（绝对值）
+    off_diagonal_diff = off_diagonal_diff.fill_diagonal_(0) 
     off_diagonal_error = torch.sum(off_diagonal_diff)
 
-    # 组合误差
-    alpha = 0.1  # 对角线部分的权重
+    #The combination error of diagonal and non-diagonal lines
+    alpha = 0.1 
     current_score = alpha * diagonal_error.item() + (1 - alpha) * off_diagonal_error.item()
     temp = initial_temp
     best_family = current_family[:]
     best_score = current_score
 
-    # 记录收敛数据
+
     convergence_data = []
 
     for iteration in range(max_iterations):
@@ -230,30 +220,22 @@ def monte_carlo_family_optimization(target_coupling_matrix, residue_simple, colu
     
         while not temp_stable and steps_at_current_temp < steps_per_temp:
 
-            #每列随机突变（无频率）
             # new_family=[perturb_sequence2(sequence,columns,perturbation_strength=0.08) for sequence in current_family]
-            #根据天然序列频率进行突变
+            
             new_family=[perturb_sequence(sequence,columns,column_frequencies,perturbation_strength=0.08) for sequence in current_family]
             new_coupling = calculate_coupling(new_family)
         
-            # # 提取对角线元素的差值的绝对值
             diagonal_diff = torch.sqrt(torch.pow(torch.diagonal(new_coupling - target_coupling_matrix), 2))
-            # 计算对角线误差（绝对值）
             diagonal_error = torch.sum(diagonal_diff)
-
-            # 提取非对角线元素的差值的绝对值
             off_diagonal_diff = (new_coupling - target_coupling_matrix) ** 2
-            off_diagonal_diff = off_diagonal_diff.fill_diagonal_(0)  # 去掉对角线部分
-            # 计算非对角线误差（绝对值）
+            off_diagonal_diff = off_diagonal_diff.fill_diagonal_(0)
             off_diagonal_error = torch.sum(off_diagonal_diff)
-
-            # 组合误差
-            alpha = 0.1  # 对角线部分的权重
+            alpha = 0.1  
             new_score = alpha * diagonal_error.item() + (1 - alpha) * off_diagonal_error.item()
-            # 计算接受概率
+
             delta = new_score - current_score
             acceptance_probability = math.exp(-delta / temp) if delta > 0 else 1
-            # 计算接受概率
+   
             if delta > 0:
                 acceptance_probability = math.exp(-delta / temp)
                 print(f"  Delta > 0, Acceptance Probability: {acceptance_probability:.4f}")
@@ -261,19 +243,19 @@ def monte_carlo_family_optimization(target_coupling_matrix, residue_simple, colu
                 acceptance_probability = 1
                 delta_neg_count += 1
                             
-            # 判断是否接受新家族
+
             if random.random()  < acceptance_probability:
                 accepted_count += 1
                 current_family = new_family
                 current_score = new_score
                 
-                # 更新最佳解
+
                 if new_score < best_score:
                     best_family = new_family
                     best_score = new_score
                 print(f"  Accepted new family (better solution or by chance).")
             else:
-            # 未接受新家族
+
                 rejected_count += 1
                 print(f"  Rejected new family (did not pass acceptance probability).")
                 
@@ -281,7 +263,7 @@ def monte_carlo_family_optimization(target_coupling_matrix, residue_simple, colu
             print(f" Current Score: {current_score}, New Score: {new_score}, Acceptance Probability: {acceptance_probability:.4f},delta:{delta:.4f}")
         temp *= cooling_rate
         
-        # 记录当前得分
+
         convergence_data.append(current_score)
         print(f"temp: {temp}")
         print(f"Iteration {iteration + 1}/{max_iterations}, Current Score: {current_score:.4f}, Best Score: {best_score:.4f},New Score: {new_score:.4f}, Delta: {delta:.4f}")
@@ -322,7 +304,7 @@ if __name__ == "__main__":
         max_iterations=max_iterations, initial_temp=initial_temp, cooling_rate=cooling_rate,num_sequences=num_sequences, steps_per_temp=steps_per_temp
     )
 
-    # 保存优化结果
+
     with open(output_file, "w") as file:
         file.write("Optimized Family and Best Function Value\n")
         for i, seq in enumerate(optimized_family):
@@ -330,7 +312,7 @@ if __name__ == "__main__":
             file.write(f"Sequence {i + 1}: {sequence_str}\n")
         file.write(f"\nBest Function Value: {best_score:.4f}\n")
 
-    # 保存收敛数据
+
     with open(convergence_file, "w") as file:
         file.write("Iteration\tObjective Function Value\n")
         for iteration, score in enumerate(convergence_data):
