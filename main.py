@@ -127,8 +127,8 @@ def save_seqence(frequency, folder):
 
 
 if __name__ == '__main__':
-    mode = "train"   #训练模块
-    # mode = "test"  #测试模块
+    mode = "train"   
+    # mode = "test"  
     train_folder = "./train_data"
     train_path = [os.path.join(train_folder, i) for i in os.listdir(train_folder)]
     test_folder = "./test_data"
@@ -192,5 +192,6 @@ if __name__ == '__main__':
                         os.makedirs(folder)
                     save_frequency(frequency, folder)
                     save_seqence(frequency, folder)
+
 
 
